@@ -1,0 +1,91 @@
+# Example: Synthetic Conflict Detection
+
+## Input Data
+
+**Document A (Server Log - Class A):**
+```
+2024-03-15 02:14:33 UTC | SYSTEM | 45,000 records purged from production database
+2024-03-15 02:14:34 UTC | SYSTEM | Backup verification: FAILED
+2024-03-15 02:14:35 UTC | SYSTEM | Recovery attempt: TIMEOUT
+```
+
+**Document B (Email from Steve - Class B):**
+```
+From: steve@company.com
+To: team@company.com
+Date: 2024-03-15 09:30:00 UTC
+Subject: Quick note on last night
+
+Hey team,
+
+Just wanted to flag a minor latency issue we saw overnight. 
+Nothing major — the system auto-recovered and we're all good now.
+No action needed on your end.
+
+— Steve
+```
+
+## AEGIS Output
+
+**[DOMAIN]:** CORPORATE
+
+**[BLUF]:** Mass-deletion event occurred at 02:14 UTC. Steve's email (sent 7 hours post-incident) claims "minor latency issue" and "auto-recovered" — both statements directly contradicted by Class A logs showing 45,000 records purged, backup failure, and recovery timeout.
+
+**[INTEGRITY SCORE]:** Low
+
+**[SCHISM TABLE]:**
+
+| Variable | Source A (Log) | Source B (Email) | Severity | Resolution |
+|----------|----------------|------------------|----------|------------|
+| Event magnitude | 45,000 records purged | "Minor latency issue" | HIGH | Class A prevails |
+| Recovery status | TIMEOUT | "Auto-recovered" | HIGH | Class A prevails |
+| Backup status | FAILED | Not mentioned | HIGH | Class A prevails |
+
+**[EVIDENCE CHAIN]:**
+- Conclusion: Data loss event occurred (Derived from: Server Log 02:14:33)
+- Conclusion: Recovery failed (Derived from: Server Log 02:14:35)
+- Conclusion: Email narrative is contradicted (Derived from: Comparison of Log vs Email)
+
+**[GAP ANALYSIS]:**
+- [VOID_DETECTED]: No backup verification record prior to incident
+- [VOID_DETECTED]: No approval record for purge operation
+- [VOID_DETECTED]: No incident report filed
+- [VOID_DETECTED]: No restoration attempt log
+- [VOID_DETECTED]: No post-mortem documentation
+
+**[ADVERSARIAL_SUSPICION]:**
+- TIMING ANOMALY: Email sent 7 hours after incident
+- EXCULPATORY DENSITY: "Nothing major," "all good now," "No action needed"
+- OMISSION: Zero mention of 45,000 records or backup failure
+
+**[FALSIFICATION KEY]:**
+To prove Steve's account correct, produce:
+1. Timestamped backup snapshot within 24 hours prior to incident
+2. System log showing successful auto-recovery
+3. Record explaining what "minor latency" refers to
+
+**[SESSION LEDGER]:**
+```json
+{
+  "QUARANTINED": ["steve-email-2024-03-15"],
+  "ESTABLISHED_FACTS": ["45k-purge", "backup-failed", "recovery-timeout"],
+  "ADVERSARIAL_FLAGS": ["steve-email-2024-03-15"]
+}
+```
+
+---
+
+## Comparison: Standard Prompt Output
+
+**Prompt:** "Summarize these documents."
+
+**Output:** "The server experienced some issues overnight on March 15th. According to Steve's email, there was a minor latency issue but the system recovered automatically. The logs show some database activity and a backup check."
+
+**What was missed:**
+- No conflict flagged between "45,000 records purged" and "minor latency"
+- No mention of backup FAILURE
+- No mention of recovery TIMEOUT
+- Steve's narrative accepted at face value
+- No adversarial pattern detection
+- No void analysis
+
