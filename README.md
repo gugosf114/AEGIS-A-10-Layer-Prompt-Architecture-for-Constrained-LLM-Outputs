@@ -1,75 +1,98 @@
-# AEGIS: A 10-Layer Prompt Architecture for Constrained LLM Outputs
+# 12 Rules for AI: An Operator's Field Manual  
+**By George Abrahamyants**
 
-AEGIS (Adversarial Evidence Governance & Integrity System) is a prompt architecture that reduces LLM drift by systematically constraining the model's output space. Instead of asking AI to "summarize" or "analyze," AEGIS forces evidence classification, conflict detection, and audit-grade outputs.
-
-## The Problem
-
-Most people use AI like a search box. Upload documents, ask questions, hope the answers are accurate.
-
-The problem is **drift**. Over time, the model:
-- Blends sources instead of separating them
-- Hedges conclusions with vague language
-- Smooths contradictions instead of flagging them
-
-You asked for an audit. You got a summary.
-
-## The Solution
-
-AEGIS is a 10-layer prompt structure that constrains the model's degrees of freedom until it produces auditable, evidence-classified outputs.
-
-| Layer | Name | Function |
-|-------|------|----------|
-| 1 | System Prompt | Role lock, clinical tone, NO list |
-| 2 | Kernel | 3-Pass Compilation (Ingest → Collide → Synthesize) |
-| 3 | Governor | Schism detection, severity triage, linter |
-| 4 | Controller | Circuit breaker, override, pagination |
-| 5 | Sentinel | Genealogy tracking, CYA detection |
-| 6 | Omega | Session ledger, operator drift, self-doubt |
-| 7 | Aegis | Void detection, sterility warning, falsification |
-| 8 | Rosetta | Semantic normalization, definition matching |
-| 9 | Oracle | Counterfactual simulation, risk prediction |
-| 10 | Chameleon | Dynamic domain adaptation |
-
-## Quick Start
-
-Copy the contents of [`bootloader.txt`](bootloader.txt) into any LLM's system prompt or first message. Works with GPT-4, Claude, Gemini, Llama, or any model that accepts system instructions.
-
-## What It Does
-
-- **Truth Hierarchy**: Enforces Class A (Logs, Timestamps) > Class B (Emails, Memos) > Class C (Roadmaps, Drafts)
-- **Schism Detection**: Flags conflicts between sources with severity ratings (FATAL, HIGH, WARN)
-- **Void Detection**: Identifies missing artifacts instead of assuming they exist
-- **Adversarial Detection**: Surfaces patterns indicating after-the-fact documentation
-- **Falsification Keys**: Demands "To prove this wrong, produce X"
-
-## Validation
-
-In testing, AEGIS surfaced 5 unsupported claims and 5 missing artifacts that a standard prompt missed entirely.
-
-## Files
-
-- `bootloader.txt` — The complete 10-layer prompt (copy/paste ready)
-- `Newton_Sentinel.gs` — Google Apps Script for automated signal processing (Layer 11)
-- `examples/` — Test cases and sample outputs
-- `AEGIS_10Layer_Architecture.pdf` — Full paper with methodology
-
-## Limitations
-
-AEGIS improves audit-style outputs but cannot:
-- Verify forged Class A artifacts
-- Resolve genuinely ambiguous evidence without operator input
-- Guarantee identical outputs across runs (LLMs remain probabilistic)
-
-## License
-
-MIT — Use it, fork it, improve it.
-
-## Author
-
-George Abrahamyants  
-December 2025
+A structured 10-layer operational architecture that turns any LLM into a deterministic forensic auditor.
 
 ---
 
-*"Drift happens when the model has choices. Remove the choices, reduce the drift."*
+## 🔥 The Problem
 
+Large language models drift.
+
+They smooth contradictions, collapse uncertainty, and optimize for user satisfaction rather than truth.  
+In legal, compliance, audit, risk, and governance workflows, this is unacceptable.
+
+Drift → exposure.  
+Exposure → liability.
+
+---
+
+## 🛡️ The Solution: AEGIS
+
+**AEGIS** is a 10-layer bootloader that removes every non-essential degree of freedom from the model.  
+Each layer acts as a constraint, forcing the LLM into deterministic, audit-ready behavior.
+
+> The result: repeatable, consistent outputs—even under ambiguity, stress, or conflict.
+
+---
+
+## 🏗️ Architecture Overview
+
+| Layer | Name | Function |
+|-------|------|----------|
+| **1** | Prime Directive | Truth hierarchy (Class A > B > C) |
+| **2** | Schism Engine | Conflict detection, severity triage |
+| **3** | Threat Detection | VOID detection, adversarial scanning |
+| **4** | Operational Controls | Circuit breakers, linter, recursive doubt |
+| **5** | Rosetta Stone | Semantic normalization |
+| **6** | Oracle | Counterfactual simulation |
+| **7** | Chameleon | Domain adaptation |
+| **8** | Output Schema | Format locking |
+| **9** | Persistence Layer | Hash-linked memory & audit trails |
+| **10** | Enforcement Rules | Execution constraints |
+| **11** | Sentinel (External) | Agentic execution (Apps Script + Python) |
+
+Together, Layers 1–10 form the **instructional bootloader**.  
+Layer 11 connects the LLM to a real audit stack.
+
+---
+
+## ⚙️ Stack Components
+
+- **Bootloader:**  
+  Natural-language, model-agnostic prompt architecture (AEGIS V10.x)
+
+- **Ledger (Newton Ledger):**  
+  Google Apps Script (JavaScript)  
+  Hash-chained persistence layer, audit log, and drift detection.
+
+- **Signal Processing:**  
+  Python (Sentinel Layer 11)  
+  Parses AEGIS output, extracts signals, validates artifacts, and escalates findings.
+
+---
+
+## 📁 Repository Structure
+
+```text
+├── 12_Rules_for_AI_Field_Manual.pdf
+├── bootloader/
+│   └── AEGIS_V10.1.txt
+├── apps-script/
+│   └── Newton_Sentinel.gs
+├── python/
+│   └── sentinel.py
+├── examples/
+│   └── bootloader-prompts.md
+```
+
+---
+
+## 🎥 Demo
+
+**90-second walkthrough:**  
+https://youtu.be/IfU0EK968eA
+
+---
+
+## 👤 Author
+
+**George Abrahamyants, JD**  
+UC Hastings  
+Contracts • Compliance • SALT • AI Governance
+
+LinkedIn: https://www.linkedin.com/in/georgeabrahamyants/
+
+---
+
+*“Drift happens when the model has choices. Remove the choices, reduce the drift.”*
