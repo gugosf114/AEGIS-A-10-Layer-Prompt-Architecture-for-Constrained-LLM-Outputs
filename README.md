@@ -1,3 +1,10 @@
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-v8-black.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Status](https://img.shields.io/badge/Build-Stable-green.svg)
+![LLM-Safe](https://img.shields.io/badge/LLM_Drift-Controlled-critical.svg)
+
+
 # 12 Rules for AI: An Operator's Field Manual  
 **By George Abrahamyants**
 
