@@ -1,0 +1,640 @@
+/**
+ * ───────────────────────────────────────────────
+ *  NEWTON SENTINEL : LAYER 11 (THE KINETIC AGENT)
+ * ───────────────────────────────────────────────
+ *  
+ *  The Brain (Layers 1-10) outputs signals.
+ *  The Hands (Layer 11) act on them.
+ *  
+ *  This module:
+ *  - Scans ledger entries for signal tags
+ *  - Acts on [VOID_DETECTED], [SCHISM_CRITICAL], etc.
+ *  - Logs results back to the ledger
+ *  - Maintains audit trail of all actions
+ *
+ * ───────────────────────────────────────────────
+ */
+
+// ==========================
+// CONFIGURATION
+// ==========================
+
+const SENTINEL_CONFIG = {
+  // Signal tags to watch for
+  SIGNALS: {
+    VOID_DETECTED: '[VOID_DETECTED]',
+    SCHISM_CRITICAL: '[SCHISM_CRITICAL]',
+    ADVERSARIAL_SUSPICION: '[ADVERSARIAL_SUSPICION]',
+    SYSTEM_HALT: '[SYSTEM_HALT]',
+    FATAL: '[FATAL]',
+    CASCADE_FAILURE: '[CASCADE_FAILURE]',
+    ARTIFICIAL_STERILITY: '[ARTIFICIAL_STERILITY]'
+  },
+  
+  // Status values for signal processing
+  STATUS: {
+    PENDING: 'PENDING',
+    PROCESSING: 'PROCESSING',
+    RESOLVED: 'RESOLVED',
+    ESCALATED: 'ESCALATED',
+    FAILED: 'FAILED'
+  },
+  
+  // Column indices (1-based) - adjust to match your ledger
+  COLUMNS: {
+    UUID: 1,
+    TIMESTAMP: 2,
+    ACTOR: 3,
+    EVENT_TYPE: 4,
+    TEXT: 5,
+    GIFT: 6,
+    PREV_HASH: 7,
+    RECORD_HASH: 8,
+    STATUS: 9,
+    // New columns for Sentinel
+    SIGNAL_TAG: 15,
+    SIGNAL_STATUS: 16,
+    SIGNAL_ACTION: 17,
+    SIGNAL_RESULT: 18
+  }
+};
+
+// ==========================
+// SETUP FUNCTIONS
+// ==========================
+
+/**
+ * Add Sentinel columns to the existing ledger.
+ * Run this ONCE to extend your 14-column schema to 18 columns.
+ */
+function setupSentinelColumns() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName('Newton Ledger');
+  
+  if (!sh) {
+    SpreadsheetApp.getUi().alert('Newton Ledger sheet not found. Run Setup Sheet first.');
+    return;
+  }
+  
+  // Check if Sentinel columns already exist
+  const lastCol = sh.getLastColumn();
+  if (lastCol >= 18) {
+    SpreadsheetApp.getUi().alert('Sentinel columns may already exist. Check columns 15-18.');
+    return;
+  }
+  
+  // Add headers for new columns
+  const newHeaders = ['Signal_Tag', 'Signal_Status', 'Signal_Action', 'Signal_Result'];
+  sh.getRange(1, 15, 1, 4).setValues([newHeaders]);
+  sh.getRange(1, 15, 1, 4).setFontWeight('bold');
+  sh.getRange(1, 15, 1, 4).setBackground('#4a4a4a');
+  sh.getRange(1, 15, 1, 4).setFontColor('#ffffff');
+  
+  // Auto-resize new columns
+  for (let i = 15; i <= 18; i++) {
+    sh.autoResizeColumn(i);
+  }
+  
+  logSystemEvent('SUCCESS', 'SENTINEL', 'Sentinel columns added to ledger', {columns: newHeaders});
+  SpreadsheetApp.getUi().alert('Sentinel columns (15-18) added successfully!');
+}
+
+// ==========================
+// SIGNAL DETECTION
+// ==========================
+
+/**
+ * Scan the TEXT column for signal tags.
+ * Returns array of {row, signal, text} objects.
+ */
+function detectSignals() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Newton Ledger');
+  if (!sh) return [];
+  
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return [];
+  
+  // Get TEXT column and SIGNAL_STATUS column
+  const textData = sh.getRange(2, SENTINEL_CONFIG.COLUMNS.TEXT, lastRow - 1, 1).getValues();
+  const statusData = sh.getRange(2, SENTINEL_CONFIG.COLUMNS.SIGNAL_STATUS, lastRow - 1, 1).getValues();
+  
+  const detected = [];
+  
+  for (let i = 0; i < textData.length; i++) {
+    const text = String(textData[i][0]);
+    const currentStatus = String(statusData[i][0]);
+    
+    // Skip already processed signals
+    if (currentStatus === SENTINEL_CONFIG.STATUS.RESOLVED || 
+        currentStatus === SENTINEL_CONFIG.STATUS.ESCALATED) {
+      continue;
+    }
+    
+    // Check for each signal type
+    for (const [signalName, signalTag] of Object.entries(SENTINEL_CONFIG.SIGNALS)) {
+      if (text.includes(signalTag)) {
+        detected.push({
+          row: i + 2, // Convert to 1-based row number
+          signal: signalName,
+          tag: signalTag,
+          text: text
+        });
+        break; // Only record first signal per row
+      }
+    }
+  }
+  
+  return detected;
+}
+
+/**
+ * Parse the specific artifact needed from a VOID_DETECTED signal.
+ * Example: "[VOID_DETECTED]: Missing 'Approval_Email' between June 1-5"
+ * Returns: {artifact: "Approval_Email", dateRange: "June 1-5"}
+ */
+function parseVoidDetails(text) {
+  const result = {
+    artifact: null,
+    dateRange: null,
+    owner: null,
+    rawDescription: null
+  };
+  
+  // Extract the description after [VOID_DETECTED]:
+  const voidMatch = text.match(/\[VOID_DETECTED\]:\s*(.+?)(?=\[|$)/i);
+  if (voidMatch) {
+    result.rawDescription = voidMatch[1].trim();
+  }
+  
+  // Try to extract artifact name (in quotes or after "Missing")
+  const artifactMatch = text.match(/['"]([^'"]+)['"]/);
+  if (artifactMatch) {
+    result.artifact = artifactMatch[1];
+  } else {
+    const missingMatch = text.match(/Missing\s+(\w+)/i);
+    if (missingMatch) {
+      result.artifact = missingMatch[1];
+    }
+  }
+  
+  // Try to extract date range
+  const dateMatch = text.match(/between\s+(.+?)(?:\.|$)/i);
+  if (dateMatch) {
+    result.dateRange = dateMatch[1].trim();
+  }
+  
+  return result;
+}
+
+// ==========================
+// SIGNAL HANDLERS
+// ==========================
+
+/**
+ * Main handler for processing detected signals.
+ */
+function processSignals() {
+  const signals = detectSignals();
+  
+  if (signals.length === 0) {
+    Logger.log('No pending signals detected.');
+    return { processed: 0, results: [] };
+  }
+  
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Newton Ledger');
+  const results = [];
+  
+  for (const signal of signals) {
+    // Mark as processing
+    sh.getRange(signal.row, SENTINEL_CONFIG.COLUMNS.SIGNAL_TAG).setValue(signal.tag);
+    sh.getRange(signal.row, SENTINEL_CONFIG.COLUMNS.SIGNAL_STATUS).setValue(SENTINEL_CONFIG.STATUS.PROCESSING);
+    
+    let result;
+    
+    // Route to appropriate handler
+    switch (signal.signal) {
+      case 'VOID_DETECTED':
+        result = handleVoidDetected(signal);
+        break;
+      case 'SCHISM_CRITICAL':
+        result = handleSchismCritical(signal);
+        break;
+      case 'ADVERSARIAL_SUSPICION':
+        result = handleAdversarialSuspicion(signal);
+        break;
+      case 'SYSTEM_HALT':
+        result = handleSystemHalt(signal);
+        break;
+      case 'FATAL':
+        result = handleFatal(signal);
+        break;
+      default:
+        result = { status: SENTINEL_CONFIG.STATUS.ESCALATED, action: 'Unknown signal type', result: 'Requires manual review' };
+    }
+    
+    // Update ledger with results
+    sh.getRange(signal.row, SENTINEL_CONFIG.COLUMNS.SIGNAL_STATUS).setValue(result.status);
+    sh.getRange(signal.row, SENTINEL_CONFIG.COLUMNS.SIGNAL_ACTION).setValue(result.action);
+    sh.getRange(signal.row, SENTINEL_CONFIG.COLUMNS.SIGNAL_RESULT).setValue(result.result);
+    
+    // Log the action
+    logSystemEvent('INFO', 'SENTINEL', `Processed ${signal.signal}`, {
+      row: signal.row,
+      action: result.action,
+      status: result.status
+    });
+    
+    results.push({ signal: signal, result: result });
+  }
+  
+  return { processed: results.length, results: results };
+}
+
+/**
+ * Handler for [VOID_DETECTED] signals.
+ * Attempts to find the missing artifact.
+ */
+function handleVoidDetected(signal) {
+  const details = parseVoidDetails(signal.text);
+  
+  if (!details.artifact) {
+    return {
+      status: SENTINEL_CONFIG.STATUS.ESCALATED,
+      action: 'Could not parse artifact name',
+      result: 'Manual search required: ' + details.rawDescription
+    };
+  }
+  
+  // Attempt to search Google Drive for the artifact
+  const searchResult = searchDriveForArtifact(details.artifact, details.dateRange);
+  
+  if (searchResult.found) {
+    return {
+      status: SENTINEL_CONFIG.STATUS.RESOLVED,
+      action: 'Artifact found in Drive',
+      result: `Found: ${searchResult.fileName} (${searchResult.fileUrl})`
+    };
+  } else {
+    return {
+      status: SENTINEL_CONFIG.STATUS.ESCALATED,
+      action: 'Artifact not found',
+      result: `Searched for "${details.artifact}" - no matches. VOID CONFIRMED.`
+    };
+  }
+}
+
+/**
+ * Handler for [SCHISM_CRITICAL] signals.
+ * Logs the conflict and escalates for human review.
+ */
+function handleSchismCritical(signal) {
+  // Create a dedicated entry in System Log for critical schisms
+  logSystemEvent('CRITICAL', 'SCHISM', 'Class A vs Class A conflict detected', {
+    originalRow: signal.row,
+    text: signal.text.substring(0, 500) // Truncate for log
+  });
+  
+  return {
+    status: SENTINEL_CONFIG.STATUS.ESCALATED,
+    action: 'Logged to System Log as CRITICAL',
+    result: 'Requires human arbitration - two immutable sources conflict'
+  };
+}
+
+/**
+ * Handler for [ADVERSARIAL_SUSPICION] signals.
+ * Quarantines the source and alerts.
+ */
+function handleAdversarialSuspicion(signal) {
+  // Add to quarantine list (could be a separate sheet)
+  addToQuarantine(signal.row, signal.text);
+  
+  return {
+    status: SENTINEL_CONFIG.STATUS.ESCALATED,
+    action: 'Source quarantined',
+    result: 'CYA/Deception markers detected - source isolated pending review'
+  };
+}
+
+/**
+ * Handler for [SYSTEM_HALT] signals.
+ * Stops all processing and alerts.
+ */
+function handleSystemHalt(signal) {
+  // Send alert email if configured
+  const email = PropertiesService.getScriptProperties().getProperty('ALERT_EMAIL');
+  if (email) {
+    MailApp.sendEmail(email, 
+      '[NEWTON SENTINEL] SYSTEM HALT TRIGGERED', 
+      `A critical system halt was triggered.\n\nRow: ${signal.row}\n\nDetails:\n${signal.text}`
+    );
+  }
+  
+  logSystemEvent('FATAL', 'SENTINEL', 'SYSTEM HALT TRIGGERED', {
+    row: signal.row,
+    text: signal.text.substring(0, 1000)
+  });
+  
+  return {
+    status: SENTINEL_CONFIG.STATUS.ESCALATED,
+    action: 'HALT - All processing stopped',
+    result: 'Data integrity critical - manual intervention required'
+  };
+}
+
+/**
+ * Handler for [FATAL] signals.
+ */
+function handleFatal(signal) {
+  logSystemEvent('FATAL', 'SENTINEL', 'FATAL error detected', {
+    row: signal.row,
+    text: signal.text.substring(0, 500)
+  });
+  
+  return {
+    status: SENTINEL_CONFIG.STATUS.ESCALATED,
+    action: 'Logged as FATAL',
+    result: 'Logical impossibility or critical conflict - requires investigation'
+  };
+}
+
+// ==========================
+// ARTIFACT RETRIEVAL (THE HANDS)
+// ==========================
+
+/**
+ * Search Google Drive for a missing artifact.
+ * This is the "Void Hunter" from Layer 11.
+ */
+function searchDriveForArtifact(artifactName, dateRange) {
+  try {
+    // Build search query
+    let query = `title contains '${artifactName}'`;
+    
+    // Add date filtering if available
+    if (dateRange) {
+      // Parse date range and add to query
+      // This is simplified - you'd want more robust date parsing
+      const dates = parseDateRange(dateRange);
+      if (dates.start) {
+        query += ` and modifiedDate >= '${dates.start}'`;
+      }
+      if (dates.end) {
+        query += ` and modifiedDate <= '${dates.end}'`;
+      }
+    }
+    
+    // Search Drive
+    const files = DriveApp.searchFiles(query);
+    
+    if (files.hasNext()) {
+      const file = files.next();
+      return {
+        found: true,
+        fileName: file.getName(),
+        fileUrl: file.getUrl(),
+        fileId: file.getId(),
+        mimeType: file.getMimeType()
+      };
+    }
+    
+    return { found: false };
+    
+  } catch (e) {
+    Logger.log('Drive search error: ' + e.message);
+    return { found: false, error: e.message };
+  }
+}
+
+/**
+ * Parse a date range string into start/end dates.
+ * Example: "June 1-5" -> {start: "2024-06-01", end: "2024-06-05"}
+ */
+function parseDateRange(rangeStr) {
+  // Simplified implementation - expand as needed
+  const result = { start: null, end: null };
+  
+  // Try to extract year, month, day patterns
+  // This is a stub - implement more robust parsing
+  
+  return result;
+}
+
+/**
+ * Search the Newton Ledger itself for related entries.
+ */
+function searchLedgerForArtifact(artifactName) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Newton Ledger');
+  if (!sh) return { found: false };
+  
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return { found: false };
+  
+  const data = sh.getRange(2, 1, lastRow - 1, 14).getValues();
+  
+  for (let i = 0; i < data.length; i++) {
+    const text = String(data[i][4]); // TEXT column
+    const eventType = String(data[i][3]); // EVENT_TYPE column
+    
+    if (text.toLowerCase().includes(artifactName.toLowerCase())) {
+      return {
+        found: true,
+        row: i + 2,
+        eventType: eventType,
+        text: text.substring(0, 200)
+      };
+    }
+  }
+  
+  return { found: false };
+}
+
+// ==========================
+// QUARANTINE SYSTEM
+// ==========================
+
+/**
+ * Add a source to the quarantine list.
+ */
+function addToQuarantine(row, text) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let quarantineSheet = ss.getSheetByName('Quarantine');
+  
+  // Create Quarantine sheet if it doesn't exist
+  if (!quarantineSheet) {
+    quarantineSheet = ss.insertSheet('Quarantine');
+    quarantineSheet.getRange(1, 1, 1, 5).setValues([
+      ['Timestamp', 'Original_Row', 'Reason', 'Text_Preview', 'Status']
+    ]);
+    quarantineSheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    quarantineSheet.getRange(1, 1, 1, 5).setBackground('#4a4a4a');
+    quarantineSheet.getRange(1, 1, 1, 5).setFontColor('#ffffff');
+  }
+  
+  // Add quarantine entry
+  const newRow = quarantineSheet.getLastRow() + 1;
+  quarantineSheet.getRange(newRow, 1, 1, 5).setValues([[
+    new Date().toISOString(),
+    row,
+    'ADVERSARIAL_SUSPICION',
+    text.substring(0, 300),
+    'QUARANTINED'
+  ]]);
+}
+
+// ==========================
+// SESSION LEDGER (PERSISTENCE)
+// ==========================
+
+/**
+ * Generate a Session Ledger JSON for cross-session persistence.
+ * This is the "memory" you carry to the next session.
+ */
+function generateSessionLedger() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Newton Ledger');
+  if (!sh) return null;
+  
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return { QUARANTINED: [], ESTABLISHED_FACTS: [], ADVERSARIAL_FLAGS: [] };
+  
+  // Get signal data
+  const data = sh.getRange(2, 1, lastRow - 1, 18).getValues();
+  
+  const ledger = {
+    QUARANTINED: [],
+    ESTABLISHED_FACTS: [],
+    ADVERSARIAL_FLAGS: [],
+    GENERATED_AT: new Date().toISOString()
+  };
+  
+  for (const row of data) {
+    const uuid = row[0];
+    const status = row[8];
+    const signalTag = row[14];
+    const signalStatus = row[15];
+    
+    if (signalTag && signalTag.includes('ADVERSARIAL')) {
+      ledger.ADVERSARIAL_FLAGS.push(uuid);
+      ledger.QUARANTINED.push(uuid);
+    }
+    
+    if (status === 'VERIFIED') {
+      ledger.ESTABLISHED_FACTS.push(uuid);
+    }
+  }
+  
+  return ledger;
+}
+
+/**
+ * Display the Session Ledger JSON for copy/paste.
+ */
+function showSessionLedger() {
+  const ledger = generateSessionLedger();
+  const json = JSON.stringify(ledger, null, 2);
+  
+  const ui = SpreadsheetApp.getUi();
+  ui.alert('Session Ledger (Copy for Next Session)', json, ui.ButtonSet.OK);
+}
+
+// ==========================
+// MENU & UI
+// ==========================
+
+
+
+/**
+ * Scan for signals and show report.
+ */
+function scanAndReport() {
+  const signals = detectSignals();
+  const ui = SpreadsheetApp.getUi();
+  
+  if (signals.length === 0) {
+    ui.alert('Sentinel Scan', 'No pending signals detected.', ui.ButtonSet.OK);
+    return;
+  }
+  
+  let report = `Found ${signals.length} signal(s):\n\n`;
+  for (const sig of signals) {
+    report += `Row ${sig.row}: ${sig.signal}\n`;
+  }
+  
+  ui.alert('Sentinel Scan', report, ui.ButtonSet.OK);
+}
+
+/**
+ * Process signals and show report.
+ */
+function processAndReport() {
+  const result = processSignals();
+  const ui = SpreadsheetApp.getUi();
+  
+  if (result.processed === 0) {
+    ui.alert('Sentinel Processing', 'No signals to process.', ui.ButtonSet.OK);
+    return;
+  }
+  
+  let report = `Processed ${result.processed} signal(s):\n\n`;
+  for (const r of result.results) {
+    report += `Row ${r.signal.row}: ${r.signal.signal} → ${r.result.status}\n`;
+  }
+  
+  ui.alert('Sentinel Processing', report, ui.ButtonSet.OK);
+}
+
+/**
+ * Navigate to Quarantine sheet.
+ */
+function viewQuarantine() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quarantine');
+  if (sheet) {
+    SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sheet);
+  } else {
+    SpreadsheetApp.getUi().alert('No quarantined items yet.');
+  }
+}
+
+// ==========================
+// INTEGRATION WITH MAIN CODE.GS
+// ==========================
+
+/**
+ * INTEGRATION INSTRUCTIONS:
+ * 
+ * Add this menu to your existing onOpen() in Code.gs.
+ * Find the onOpen() function (around line 715) and add this BEFORE the closing brace:
+ * 
+ *   // Sentinel menu (Layer 11)
+ *   ui.createMenu('Newton Sentinel')
+ *     .addItem('Setup Sentinel Columns', 'setupSentinelColumns')
+ *     .addSeparator()
+ *     .addItem('Scan for Signals', 'scanAndReport')
+ *     .addItem('Process All Signals', 'processAndReport')
+ *     .addSeparator()
+ *     .addItem('View Quarantine', 'viewQuarantine')
+ *     .addItem('Generate Session Ledger', 'showSessionLedger')
+ *     .addToUi();
+ */
+
+/**
+ * Manual trigger for testing.
+ */
+function testSentinel() {
+  Logger.log('=== SENTINEL TEST ===');
+  
+  // Test signal detection
+  const signals = detectSignals();
+  Logger.log('Detected signals: ' + JSON.stringify(signals));
+  
+  // Test void parsing
+  const testVoid = '[VOID_DETECTED]: Missing "Approval_Email" between June 1-5';
+  const parsed = parseVoidDetails(testVoid);
+  Logger.log('Parsed void: ' + JSON.stringify(parsed));
+  
+  // Test session ledger
+  const ledger = generateSessionLedger();
+  Logger.log('Session ledger: ' + JSON.stringify(ledger));
+  
+  Logger.log('=== TEST COMPLETE ===');
+}
