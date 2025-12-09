@@ -1,3 +1,6 @@
+# 🛡️ AEGIS — 10-Layer Prompt Architecture for Constrained LLM Outputs  
+### + Newton Sentinel (Layer 11, Python Runtime Engine)
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
 ![Apps Script](https://img.shields.io/badge/Apps%20Script-Google-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
@@ -7,102 +10,220 @@
 ![AEGIS Framework](https://img.shields.io/badge/AEGIS-10--Layer%20Architecture-navy.svg)
 ![Newton Sentinel](https://img.shields.io/badge/Newton-Sentinel-important.svg)
 
+---
 
-# 12 Rules for AI: An Operator's Field Manual  
-**By George Abrahamyants**
+## 📘 Overview
 
-A structured 10-layer operational architecture that turns any LLM into a deterministic forensic auditor.
+**AEGIS** is a 10-layer forensic prompt architecture designed to control, constrain, and audit LLM outputs.  
+It enforces:
+
+- truth hierarchies  
+- conflict detection  
+- void detection  
+- escalation logic  
+- deterministic reasoning  
+- operator-controlled responses  
+
+**Newton Sentinel (Layer 11)** is the Python runtime engine that interprets AEGIS signals, processes VOID blocks, validates artifacts, and outputs machine-verifiable escalation objects.
+
+Together, they form a **deterministic AI governance and analysis stack** suitable for:
+
+- compliance  
+- audit defense  
+- risk analysis  
+- enterprise governance  
+- structured AI workflows  
+- regulated environments  
 
 ---
 
-## 🔥 The Problem
+# 🧩 AEGIS — 10-Layer Architecture (Summary)
 
-Large language models drift.
+AEGIS organizes LLM reasoning into layers:
 
-They smooth contradictions, collapse uncertainty, and optimize for user satisfaction rather than truth.  
-In legal, compliance, audit, risk, and governance workflows, this is unacceptable.
+| Layer | Function |
+|-------|----------|
+| **1 – 3** | Truth hierarchy, evidence classes, immutable vs mutable sources |
+| **4 – 6** | Schism Engine, conflict detection, logic triage |
+| **7 – 9** | Forensic structuring, void detection, anomaly reporting |
+| **10** | Operator Command Layer (explicit directives, overrides) |
+| **11** | **Newton Sentinel (Python runtime)** |
 
-Drift → exposure.  
-Exposure → liability.
+AEGIS is implemented in Apps Script and/or Python for:
 
----
-
-## 🛡️ The Solution: AEGIS
-
-**AEGIS** is a 10-layer bootloader that removes every non-essential degree of freedom from the model.  
-Each layer acts as a constraint, forcing the LLM into deterministic, audit-ready behavior.
-
-> The result: repeatable, consistent outputs—even under ambiguity, stress, or conflict.
-
----
-
-## 🏗️ Architecture Overview
-
-| Layer | Name | Function |
-|-------|------|----------|
-| **1** | Prime Directive | Truth hierarchy (Class A > B > C) |
-| **2** | Schism Engine | Conflict detection, severity triage |
-| **3** | Threat Detection | VOID detection, adversarial scanning |
-| **4** | Operational Controls | Circuit breakers, linter, recursive doubt |
-| **5** | Rosetta Stone | Semantic normalization |
-| **6** | Oracle | Counterfactual simulation |
-| **7** | Chameleon | Domain adaptation |
-| **8** | Output Schema | Format locking |
-| **9** | Persistence Layer | Hash-linked memory & audit trails |
-| **10** | Enforcement Rules | Execution constraints |
-| **11** | Sentinel (External) | Agentic execution (Apps Script + Python) |
-
-Together, Layers 1–10 form the **instructional bootloader**.  
-Layer 11 connects the LLM to a real audit stack.
+- deterministic execution  
+- logging  
+- auditability  
+- forensic replay  
 
 ---
 
-## ⚙️ Stack Components
+# ⚙️ How AEGIS Interacts with Newton Sentinel
 
-- **Bootloader:**  
-  Natural-language, model-agnostic prompt architecture (AEGIS V10.x)
+```
+[User Input]  
+   ↓  
+[AEGIS Bootloader (Layers 1–10)]  
+   ↓ (structured forensic output)  
+[Newton Sentinel – Layer 11 (Python)]  
+   ↓  
+[Deterministic Escalation / Interpretation]  
+   ↓  
+[Operator / System Log / Compliance Layer]
+```
 
-- **Ledger (Newton Ledger):**  
-  Google Apps Script (JavaScript)  
-  Hash-chained persistence layer, audit log, and drift detection.
-
-- **Signal Processing:**  
-  Python (Sentinel Layer 11)  
-  Parses AEGIS output, extracts signals, validates artifacts, and escalates findings.
+Sentinel is the **execution engine** that interprets AEGIS’s structured signals.
 
 ---
 
-## 📁 Repository Structure
+# 🐍 Newton Sentinel — Layer 11 (Python Runtime Engine)
 
-```text
-├── 12_Rules_for_AI_Field_Manual.pdf
-├── bootloader/
-│   └── AEGIS_V10.1.txt
-├── apps-script/
-│   └── Newton_Sentinel.gs
-├── python/
-│   └── sentinel.py
-├── examples/
-│   └── bootloader-prompts.md
+`python/sentinel.py` performs:
+
+- multi-block VOID_DETECTED parsing  
+- signal detection  
+- artifact validation  
+- forensic escalation logic  
+- deterministic output generation  
+- AEGIS → Python integration  
+
+It ensures that LLM outputs become **structured, auditable, machine-verifiable events**.
+
+---
+
+## 🔥 Core Features
+
+- **Multi-block VOID_DETECTED parser**  
+  Extracts *every* VOID block, not just the first.
+
+- **Artifact whitelist validation**  
+  Ensures artifacts map to valid document types.
+
+- **Complete signal extraction**  
+  Handles `[VOID_DETECTED]`, `[FATAL]`, `[HIGH]`, `[SYSTEM_HALT]`, `[ADVERSARIAL_SUSPICION]`, etc.
+
+- **Deterministic escalation objects**  
+  Produces machine-stable, audit-ready outputs.
+
+- **Designed for replay**  
+  Same input → same output → stable forensic behavior.
+
+---
+
+# 📄 VOID Block Format (Supported)
+
+```
+[VOID_DETECTED]: ARTIFACT_NAME | Description text here…
+```
+
+Examples:
+
+```
+[VOID_DETECTED]: INCIDENT_TICKET | No incident record found for March 15 purge
+[VOID_DETECTED]: BACKUP_LOG | Snapshot missing prior to restore operation
+```
+
+AEGIS may emit **multiple** VOID blocks; Sentinel parses all of them.
+
+---
+
+# 🚀 Example: Using Sentinel to Process AEGIS Output
+
+### **Python Code Example**
+
+```python
+from sentinel import process_aegis_output
+
+text = """
+[VOID_DETECTED]: INCIDENT_TICKET | Incident record for March 15 purge
+[VOID_DETECTED]: BACKUP_LOG | Post-incident snapshot confirming restore
+"""
+
+result = process_aegis_output(text)
+print(result)
 ```
 
 ---
 
-## 🎥 Demo
+# 🧩 Example Output (Deterministic JSON)
 
-**90-second walkthrough:**  
-https://youtu.be/IfU0EK968eA
+```json
+{
+  "signals_found": 2,
+  "results": [
+    {
+      "signal": "VOID_DETECTED",
+      "result": {
+        "status": "ESCALATED",
+        "action": "Artifact not found",
+        "result": "Searched for \"INCIDENT_TICKET\" - no matches. VOID CONFIRMED."
+      }
+    },
+    {
+      "signal": "VOID_DETECTED",
+      "result": {
+        "status": "ESCALATED",
+        "action": "Artifact not found",
+        "result": "Searched for \"BACKUP_LOG\" - no matches. VOID CONFIRMED."
+      }
+    }
+  ]
+}
+```
 
 ---
 
-## 👤 Author
+# 📂 Project Structure
 
-**George Abrahamyants, JD**  
-UC Hastings  
-Contracts • Compliance • SALT • AI Governance
-
-LinkedIn: https://www.linkedin.com/in/georgeabrahamyants/
+```
+/
+├── python/
+│   └── sentinel.py          # Newton Sentinel (Layer 11)
+├── apps_script/
+│   └── aegis_bootloader.gs  # AEGIS Layers 1–10 (optional)
+├── docs/
+│   └── architecture.md
+│   └── examples.md
+├── README.md
+└── LICENSE
+```
 
 ---
 
-*“Drift happens when the model has choices. Remove the choices, reduce the drift.”*
+# 🧪 Testing (Optional)
+
+To validate Sentinel:
+
+```
+python3 python/sentinel.py
+```
+
+---
+
+# 📜 License
+
+This project is licensed under the **MIT License**, allowing open use, modification, and distribution.
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome, especially around:
+
+- new forensic signals  
+- additional artifact types  
+- improved regex parsing  
+- CLI wrappers  
+- AEGIS–Sentinel integration  
+
+Submit a PR or open an issue.
+
+---
+
+# ⭐ Final Notes
+
+This repository demonstrates an advanced **deterministic AI control framework**, pairing structured LLM prompting (AEGIS) with formal forensic interpretation (Newton Sentinel).  
+It is designed for reliability, auditability, and operational clarity in complex workflows.
+
+---
+
