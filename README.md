@@ -1,8 +1,11 @@
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-v8-black.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/Build-Stable-green.svg)
-![LLM-Safe](https://img.shields.io/badge/LLM_Drift-Controlled-critical.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
+![Apps Script](https://img.shields.io/badge/Apps%20Script-Google-blue.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)
+![Deterministic AI](https://img.shields.io/badge/Deterministic-AI-blueviolet.svg)
+![Forensic Control](https://img.shields.io/badge/Forensic-Control-critical.svg)
+![AEGIS Framework](https://img.shields.io/badge/AEGIS-10--Layer%20Architecture-navy.svg)
+![Newton Sentinel](https://img.shields.io/badge/Newton-Sentinel-important.svg)
 
 
 # 12 Rules for AI: An Operator's Field Manual  
